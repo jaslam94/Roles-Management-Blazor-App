@@ -1,0 +1,20 @@
+﻿@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "Confirm email";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<p>
+    @Model.StatusMessage
+</p>
+
+@if (Model.Flag == true)
+{
+    <div class="row mt-3">
+        <div class="col-12">
+            <p class="text-muted">Go to <a href="/Identity/Account/Login" class="text-muted ml-1"><b>Sign In</b></a> page.</p>
+        </div> <!-- end col -->
+    </div>
+}

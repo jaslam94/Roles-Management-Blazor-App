@@ -1,0 +1,71 @@
+﻿
+@using BlazorRolesMgmt.Data;
+
+<!-- This is the popup to create or edit a user -->
+<div class="modal" tabindex="-1" style="display:block" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add/Edit User</h3>
+                <!-- Button to close the popup -->
+                <button type="button" class="close" @onclick="ClosePopup"><span aria-hidden="true">X</span></button>
+            </div>
+            <!-- Edit form for the current user -->
+            <div class="modal-body pl-5">
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="form-group">
+                            <input class="form-control" type="text" placeholder="First Name" @bind="objUser.FirstName" />
+                        </div>
+                        <div class="form-group">
+                            <input class="form-control" type="text" placeholder="Last Name" @bind="objUser.LastName" />
+                        </div>
+                        <div class="form-group">
+                            <input class="form-control" type="text" placeholder="Email" @bind="objUser.Email" />
+                        </div>
+                        @if (objUser.Id != "" && CurrentUserRoles != "")
+                        {
+                            <div class="form-group">
+                                <span class="text-info font-italic">This user has @CurrentUserRoles role(s).</span>
+                            </div>
+                        }
+                        <button class="btn btn-primary" @onclick="SaveUser">Save</button>
+                        @if (objUser.Id != "")
+                        {
+                            <button class="btn btn-danger float-right" @onclick="DeleteUser">Delete</button>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(strError) && !string.IsNullOrEmpty(strError))
+                        {
+                            <div class="form-group row">
+                                <span style="color:red">@strError</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public ApplicationUser objUser { get; set; }
+
+    [Parameter]
+    public string CurrentUserRoles { get; set; }
+
+    [Parameter]
+    public string strError { get; set; }
+
+    [Parameter]
+    public EventCallback ClosePopup { get; set; }
+
+    [Parameter]
+    public EventCallback SaveUser { get; set; }
+
+    [Parameter]
+    public EventCallback DeleteUser { get; set; }
+}
+

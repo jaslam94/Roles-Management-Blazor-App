@@ -1,0 +1,161 @@
+﻿
+@page "/manageroles"
+@attribute [Authorize(Roles = "Admin")]
+
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Identity;
+@using BlazorRolesMgmt.Data;
+@inject UserManager<ApplicationUser> _UserManager
+@inject RoleManager<IdentityRole> _RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Manage Roles</h3>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container-fluid">
+            <div class="row mb-3">
+                <div class="col">
+                    <button class="btn btn-success float-right" @onclick="AddNewRole">Add Role</button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var role in ColRoles)
+                            {
+                                <tr>
+                                    <td>@role.Name</td>
+                                    <td>
+                                        <!-- Edit the current role -->
+                                        <button class="btn btn-primary"
+                                                @onclick="(() => EditRole(role))">
+                                            Edit
+                                        </button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+
+                    @if (ShowPopup)
+                    {
+                        <!-- This is the popup to create or edit a role -->
+                        <div class="modal" tabindex="-1" style="display:block" role="dialog">
+                            <div class="modal-dialog">
+                                <div class="modal-content">
+                                    <div class="modal-header">
+                                        <h3 class="modal-title">Add/Edit Role</h3>
+                                        <!-- Button to close the popup -->
+                                        <button type="button" class="close" @onclick="ClosePopup"><span aria-hidden="true">X</span></button>
+                                    </div>
+                                    <!-- Edit form for the current role -->
+                                    <div class="modal-body pl-5">
+                                        <div class="row">
+                                            <div class="col-md-10">
+                                                <div class="form-group">
+                                                    <input class="form-control" type="text" placeholder="Name" @bind="objRole.Name" />
+                                                </div>
+                                                <button class="btn btn-primary" @onclick="SaveRole">Save</button>
+                                                @if (objRole.Id != "")
+                                                {
+                                                    <button class="btn btn-danger float-right" @onclick="DeleteRole">Delete</button>
+                                                }
+                                                <div class="form-group row">
+                                                    <span style="color:red">@strError</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <p>You're not loggged in.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    string AdminRole = "Admin";
+    IdentityRole objRole = new IdentityRole();
+    List<IdentityRole> ColRoles = new List<IdentityRole>();
+    string strError = "";
+    bool ShowPopup = false;
+
+    protected override void OnInitialized()
+    {
+        GetRoles();
+    }
+
+    void AddNewRole()
+    {
+        objRole = new IdentityRole();
+        ShowPopup = true;
+    }
+
+    async Task SaveRole()
+    {
+        try
+        {
+            var role = await _RoleManager.FindByIdAsync(objRole.Id);
+            if (role == null)
+            {
+                await _RoleManager.CreateAsync(new IdentityRole(objRole.Name));
+            }
+            else
+            {
+                role.Id = objRole.Id;
+                role.Name = objRole.Name;
+                role.NormalizedName = objRole.Name;
+                role.ConcurrencyStamp = objRole.ConcurrencyStamp;
+                await _RoleManager.UpdateAsync(role);
+            }
+            ShowPopup = false;
+            GetRoles();
+        }
+        catch (Exception ex)
+        {
+            strError = ex.GetBaseException().Message;
+        }
+    }
+
+    void EditRole(IdentityRole _role)
+    {
+        objRole = _role;
+        ShowPopup = true;
+    }
+
+    async Task DeleteRole()
+    {
+        ShowPopup = false;
+        var role = await _RoleManager.FindByIdAsync(objRole.Id);
+        if (role != null)
+        {
+            await _RoleManager.DeleteAsync(role);
+        }
+        GetRoles();
+    }
+
+    void ClosePopup()
+    {
+        ShowPopup = false;
+    }
+
+    public void GetRoles()
+    {
+        strError = "";
+        ColRoles = _RoleManager.Roles.ToList();
+    }
+}

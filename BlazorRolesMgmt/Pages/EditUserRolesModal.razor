@@ -1,0 +1,107 @@
+﻿
+@using BlazorRolesMgmt.Data;
+
+<!-- This is the popup to create or edit user roles -->
+<div class="modal" tabindex="-1" style="display:block" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">User Roles</h3>
+                <button type="button" class="close" @onclick="ClosePopup"><span aria-hidden="true">X</span></button>
+            </div>
+            <div class="modal-body pl-5">
+                <div class="modal-title mb-4">
+                    <h6 class="text-info font-italic">This user has @CurrentUserRoles role(s).</h6>
+                </div>
+                <h5 class="my-3">Add Role</h5>
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="form-group">
+                            <input class="form-control" type="text" @bind="objUser.Email" disabled />
+                        </div>
+                        <div class="form-group">
+                            <select class="form-control" @bind="@SelectedUserRole">
+                                @foreach (var option in AllRoles)
+                                {
+                                    <option value="@option">@option</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" @onclick="OnAddRoleToUser">Assign</button>
+                        @if (!string.IsNullOrWhiteSpace(strError) && !string.IsNullOrEmpty(strError))
+                        {
+                            <div class="form-group row">
+                                <span style="color:red">@strError</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+                <hr />
+                <h5 class="my-3">Remove Role</h5>
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="form-group">
+                            <input class="form-control" type="text" @bind="objUser.Email" disabled />
+                        </div>
+                        <div class="form-group">
+                            <select class="form-control" @bind="@SelectedUserRole">
+                                @foreach (var option in UserRoles)
+                                {
+                                    <option value="@option">@option</option>
+                                }
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-primary" @onclick="OnRemoveRoleFromUser">Save</button>
+                        @if (!string.IsNullOrWhiteSpace(strError) && !string.IsNullOrEmpty(strError))
+                        {
+                            <div class="form-group row">
+                                <span style="color:red">@strError</span>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+
+    [Parameter]
+    public ApplicationUser objUser { get; set; }
+
+    [Parameter]
+    public string CurrentUserRoles { get; set; }
+
+    [Parameter]
+    public List<string> AllRoles { get; set; }
+
+    [Parameter]
+    public List<string> UserRoles { get; set; }
+
+    [Parameter]
+    public string strError { get; set; }
+
+    [Parameter]
+    public EventCallback ClosePopup { get; set; }
+
+    [Parameter]
+    public string SelectedUserRole { get; set; }
+
+    [Parameter]
+    public EventCallback<string> AddRoleToUser { get; set; }
+
+    private async Task OnAddRoleToUser()
+    {
+        await AddRoleToUser.InvokeAsync(SelectedUserRole);
+    }
+
+
+    [Parameter]
+    public EventCallback<string> RemoveRoleFromUser { get; set; }
+
+    private async Task OnRemoveRoleFromUser()
+    {
+        await RemoveRoleFromUser.InvokeAsync(SelectedUserRole);
+    }
+}

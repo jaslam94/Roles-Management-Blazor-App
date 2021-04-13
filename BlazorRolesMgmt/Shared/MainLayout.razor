@@ -1,0 +1,21 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    <AuthorizeView>
+        <Authorized>
+            <div class="sidebar">
+                <NavMenu />
+            </div>
+        </Authorized>
+    </AuthorizeView>
+
+    <div class="main">
+        <div class="top-row px-4 auth">
+            <LoginDisplay />
+        </div>
+
+        <div class="content px-4">
+            @Body
+        </div>
+    </div>
+</div>

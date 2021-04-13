@@ -1,0 +1,45 @@
+﻿@using BlazorRolesMgmt.Data;
+
+<Table TableItem="ApplicationUser" Items="_allUsers" PageSize="20" ColumnReorder="true" class="table">
+    <Column TableItem="ApplicationUser" Title="First Name" Field="@(x => x.FirstName)" Sortable="true" DefaultSortColumn="true" />
+    <Column TableItem="ApplicationUser" Title="Last Name" Field="@(x => x.LastName)" Sortable="true" />
+    <Column TableItem="ApplicationUser" Title="Email" Field="@(x => x.Email)" Sortable="true">
+        <Template Context="_context">
+            <a href="mailto:@_context.Email">@_context.Email</a>
+        </Template>
+    </Column>
+    <Column TableItem="ApplicationUser" Title="" Width="20%">
+        <Template Context="_context">
+            <!-- Edit the current user -->
+            <button class="btn btn-sm btn-primary"
+                    @onclick="(() => EditUser(_context))">
+                Edit
+            </button>
+            <!-- Remove the role from user -->
+            <button class="btn btn-sm btn-info"
+                    @onclick="(() => AddRemoveUserRoles(_context))">
+                Roles
+            </button>
+            <!-- Generate new password -->
+            <button class="btn btn-sm btn-secondary"
+                    @onclick="(() => GeneratePassword(_context))">
+                <i class="oi oi-key"></i>
+            </button>
+        </Template>
+    </Column>
+    <Pager ShowPageNumber="true" ShowTotalCount="true" ShowPageSizes="true" />
+</Table>
+
+@code {
+    [Parameter]
+    public List<ApplicationUser> _allUsers { get; set; }
+
+    [Parameter]
+    public Action<ApplicationUser> EditUser { get; set; }
+
+    [Parameter]
+    public Action<ApplicationUser> AddRemoveUserRoles { get; set; }
+
+    [Parameter]
+    public Action<ApplicationUser> GeneratePassword { get; set; }
+}

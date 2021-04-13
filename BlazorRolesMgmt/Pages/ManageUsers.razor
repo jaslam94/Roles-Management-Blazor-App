@@ -1,0 +1,339 @@
+﻿
+@page "/manageusers"
+@attribute [Authorize(Roles = "Admin")]
+
+@using Microsoft.AspNetCore.Authorization;
+@using Microsoft.AspNetCore.Identity;
+@using BlazorRolesMgmt.Data;
+@using BlazorRolesMgmt.Helpers;
+
+@inject UserManager<ApplicationUser> _UserManager
+@inject RoleManager<IdentityRole> _RoleManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
+
+<h3>Manage Users</h3>
+
+<AuthorizeView>
+    <Authorized>
+        <div class="container-fluid">
+            <div class="row mb-3">
+                <div class="col">
+                    <button class="btn btn-success float-right" @onclick="AddNewUser">Add User</button>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    <Table TableItem="ApplicationUser" Items="_allUsers" PageSize="20" ColumnReorder="true" class="table">
+                        <Column TableItem="ApplicationUser" Title="First Name" Field="@(x => x.FirstName)" Sortable="true" DefaultSortColumn="true" />
+                        <Column TableItem="ApplicationUser" Title="Last Name" Field="@(x => x.LastName)" Sortable="true" />
+                        <Column TableItem="ApplicationUser" Title="Email" Field="@(x => x.Email)" Sortable="true">
+                            <Template Context="_context">
+                                <a href="mailto:@_context.Email">@_context.Email</a>
+                            </Template>
+                        </Column>
+                        <Column TableItem="ApplicationUser" Title="" Width="20%">
+                            <Template Context="_context">
+                                <!-- Edit the current user -->
+                                <button class="btn btn-sm btn-primary"
+                                        @onclick="(() => EditUser(_context))">
+                                    Edit
+                                </button>
+                                <!-- Remove the role from user -->
+                                <button class="btn btn-sm btn-info"
+                                        @onclick="(() => AddRemoveUserRoles(_context))">
+                                    Roles
+                                </button>
+                                <!-- Generate new password -->
+                                <button class="btn btn-sm btn-secondary"
+                                        @onclick="(() => GeneratePassword(_context))">
+                                    <i class="oi oi-key"></i>
+                                </button>
+                            </Template>
+                        </Column>
+                        <Pager ShowPageNumber="true" ShowTotalCount="true" ShowPageSizes="true" />
+                    </Table>
+
+                    @if (ShowPopup)
+                    {
+                        <EditUserModal ClosePopup="ClosePopup" CurrentUserRoles="@CurrentUserRoles" DeleteUser="DeleteUser" objUser="@objUser" SaveUser="SaveUser" strError="@strError" />
+                    }
+
+                    @if (ShowUserRolesPopup)
+                    {
+                        <!-- This is the popup to create or edit user roles -->
+                        <EditUserRolesModal AllRoles="@_allRoles" UserRoles="@_userRoles" CurrentUserRoles="@CurrentUserRoles" objUser="@objUser" SelectedUserRole="@SelectedUserRole" AddRoleToUser="@(() => AddRoleToUser(SelectedUserRole))" RemoveRoleFromUser="@(() => RemoveRoleFromUser(SelectedUserRole))" strError="@strError" ClosePopup="ClosePopup" />
+                    }
+
+                    @if (ShowPasswordPopup)
+                    {
+                        <PasswordModal ClosePopup="@ClosePopup" objUser="@objUser" NewUserPassword="@NewUserPassword" />
+                    }
+                </div>
+            </div>
+        </div>
+    </Authorized>
+    <NotAuthorized>
+        <p>You're not loggged in.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    // Property used to add or edit the currently selected user
+    ApplicationUser objUser = new ApplicationUser();
+
+    string CurrentUserRoles { get; set; }
+
+    string SelectedUserRole { get; set; }
+
+    // To show the new user password
+    string NewUserPassword { get; set; }
+
+    // Collection to display the existing users
+    List<ApplicationUser> _allUsers = new List<ApplicationUser>();
+
+    // Roles to display in the roles dropdown when adding a role to the user
+    List<string> _allRoles = new List<string>();
+
+    // Roles to display in the roles dropdown when removing a role from the user
+    List<string> _userRoles = new List<string>();
+
+    // To hold any possible errors
+    string strError = "";
+
+    // To enable showing the Popup
+    bool ShowPopup = false;
+
+    // To enable showing the User Roles Popup
+    bool ShowUserRolesPopup = false;
+
+    // To enable showing the User Roles Popup
+    bool ShowPasswordPopup = false;
+
+    protected override void OnInitialized()
+    {
+        _allRoles = _RoleManager.Roles.Where(m => m.Name != "Admin").Select(m => m.Name).ToList();
+        GetUsers();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////Users Management Code///////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void AddNewUser()
+    {
+        // Make new user
+        objUser = new ApplicationUser();
+        // Set Id to blank so we know it is a new record
+        objUser.Id = "";
+        //Reset the allroles list
+        _allRoles = _RoleManager.Roles.Where(m => m.Name != "Admin").Select(m => m.Name).ToList();
+        // Open the Popup
+        ShowPopup = true;
+    }
+
+    async Task SaveUser()
+    {
+        try
+        {
+            if (objUser.Id != "")
+            {
+                // Get the user
+                var user = await _UserManager.FindByIdAsync(objUser.Id);
+
+                user.Email = objUser.Email;
+                user.FirstName = objUser.FirstName;
+                user.LastName = objUser.LastName;
+
+                // Update the user
+                await _UserManager.UpdateAsync(user);
+            }
+            else
+            {
+                // Insert new user
+                var NewUser = new ApplicationUser
+                {
+                    UserName = objUser.Email,
+                    Email = objUser.Email,
+                    FirstName = objUser.FirstName,
+                    LastName = objUser.LastName
+                };
+                // Create a random password
+                NewUserPassword = PasswordHelper.CreateRandomPassword();
+
+                var CreateResult = await _UserManager.CreateAsync(NewUser, NewUserPassword);
+
+                if (!CreateResult.Succeeded)
+                {
+                    if (CreateResult.Errors.FirstOrDefault() != null)
+                    {
+                        strError = CreateResult.Errors.FirstOrDefault().Description;
+                    }
+                    else
+                    {
+                        strError = "An unexpected error has occurred while creating the new user.";
+                    }
+                    // Keep the popup opened
+                    return;
+                }
+            }
+            // Close the Popup
+            ShowPopup = false;
+            // Refresh Users
+            GetUsers();
+
+            if (objUser.Id == "")
+            {
+                //Show password
+                ShowPassword();
+            }
+        }
+        catch (Exception ex)
+        {
+            strError = ex.GetBaseException().Message;
+        }
+    }
+
+    async Task EditUser(ApplicationUser _ApplicationUser)
+    {
+        // Set the selected user as the current user
+        objUser = _ApplicationUser;
+        // Get the user
+        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        if (user != null)
+        {
+            var userRoles = await _UserManager.GetRolesAsync(user);
+            CurrentUserRoles = string.Join(", ", userRoles.ToArray());
+        }
+        // Open the Popup
+        ShowPopup = true;
+    }
+
+    async Task DeleteUser()
+    {
+        // Get the user
+        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        if (user != null)
+        {
+            // Delete the user
+            await _UserManager.DeleteAsync(user);
+        }
+        // Close the Popup
+        ShowPopup = false;
+        // Refresh Users
+        GetUsers();
+    }
+
+    void ClosePopup()
+    {
+        // Close the Popup
+        ShowPopup = false;
+        ShowUserRolesPopup = false;
+        ShowPasswordPopup = false;
+        strError = "";
+    }
+
+    public void GetUsers()
+    {
+        // Clear any error messages
+        strError = "";
+        // Collection to hold users
+        _allUsers = _UserManager.Users.Where(m => m.Email != "admin@rolesmgmt.com").ToList();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////////Password  Code////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    void ShowPassword()
+    {
+        ShowPasswordPopup = true;
+    }
+
+    async Task GeneratePassword(ApplicationUser _ApplicationUser)
+    {
+        // Set the selected user as the current user
+        objUser = _ApplicationUser;
+
+        // Create a random password
+        NewUserPassword = PasswordHelper.CreateRandomPassword();
+
+        var resetToken = await _UserManager.GeneratePasswordResetTokenAsync(_ApplicationUser);
+        var passworduser = await _UserManager.ResetPasswordAsync(_ApplicationUser, resetToken, NewUserPassword);
+        if (!passworduser.Succeeded)
+        {
+            if (passworduser.Errors.FirstOrDefault() != null)
+            {
+                strError = passworduser.Errors.FirstOrDefault().Description;
+            }
+            else
+            {
+                strError = "An unexpected error has occurred while setting the new password.";
+            }
+            // Keep the popup opened
+            return;
+        }
+
+        ShowPassword();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////Roles Management Code/////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    async Task AddRemoveUserRoles(ApplicationUser _ApplicationUser)
+    {
+        // Set the selected user as the current user
+        objUser = _ApplicationUser;
+        // Get the user
+        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        if (user != null)
+        {
+            var userRoles = await _UserManager.GetRolesAsync(user);
+            CurrentUserRoles = string.Join(", ", userRoles.ToArray());
+
+            //Only those roles which are not assigned to this user
+            _allRoles = _RoleManager.Roles.Where(m => !userRoles.Contains(m.Name)).Select(m => m.Name).ToList();
+
+            //Only those roles which are assigned to this user
+            _userRoles = _RoleManager.Roles.Where(m => userRoles.Contains(m.Name)).Select(m => m.Name).ToList();
+        }
+        // Show the Delete Role Popup
+        ShowUserRolesPopup = true;
+    }
+
+    async Task RemoveRoleFromUser(string SelectedUserRole)
+    {
+        // Get the user
+        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        if (user != null)
+        {
+            if (SelectedUserRole != "" && SelectedUserRole != null)
+            {
+                // Delete the user role
+                await _UserManager.RemoveFromRoleAsync(user, SelectedUserRole);
+            }
+        }
+        // Close the Popup
+        ShowUserRolesPopup = false;
+        // Refresh Users
+        GetUsers();
+    }
+
+    async Task AddRoleToUser(string SelectedUserRole)
+    {
+        // Get the user
+        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        if (user != null)
+        {
+            if (SelectedUserRole != "" && SelectedUserRole != null)
+            {
+                // Delete the user role
+                await _UserManager.AddToRoleAsync(user, SelectedUserRole);
+            }
+        }
+        // Close the Popup
+        ShowUserRolesPopup = false;
+        // Refresh Users
+        GetUsers();
+    }
+}

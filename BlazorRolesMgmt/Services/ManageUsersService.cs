@@ -78,7 +78,7 @@ namespace BlazorRolesMgmt.Services
 
         public List<ApplicationUser> GetAllUsers()
         {
-            return UserManager.Users.Where(m => m.Email != "admin@biotemp.com").ToList();
+            return UserManager.Users.Where(m => m.Email != "admin@rolesmgmt.com").ToList();
         }
 
         public async Task<ApplicationUser> GetUser(string Id)

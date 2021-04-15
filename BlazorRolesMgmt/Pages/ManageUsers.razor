@@ -58,7 +58,7 @@
                     @if (ShowUserRolesPopup)
                     {
                         <!-- This is the popup to create or edit user roles -->
-                        <EditUserRolesModal AllRoles="@_allRoles" UserRoles="@_userRoles" CurrentUserRoles="@CurrentUserRoles" objUser="@objUser" SelectedUserRole="@SelectedUserRole" AddRoleToUser="@(() => AddRoleToUser(SelectedUserRole))" RemoveRoleFromUser="@(() => RemoveRoleFromUser(SelectedUserRole))" strError="@strError" ClosePopup="ClosePopup" />
+                        <EditUserRolesModal AllRoles="@_allRoles" UserRoles="@_userRoles" CurrentUserRoles="@CurrentUserRoles" objUser="@objUser" AddRoleToUser="AddRoleToUser" RemoveRoleFromUser="RemoveRoleFromUser" strError="@strError" ClosePopup="ClosePopup" />
                     }
 
                     @if (ShowPasswordPopup)
@@ -79,8 +79,6 @@
     ApplicationUser objUser = new ApplicationUser();
 
     string CurrentUserRoles { get; set; }
-
-    string SelectedUserRole { get; set; }
 
     // To show the new user password
     string NewUserPassword { get; set; }

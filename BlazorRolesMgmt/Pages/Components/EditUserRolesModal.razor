@@ -21,6 +21,7 @@
                         </div>
                         <div class="form-group">
                             <select class="form-control" @bind="@SelectedUserRole">
+                                <option value="">Select...</option>
                                 @foreach (var option in AllRoles)
                                 {
                                     <option value="@option">@option</option>
@@ -45,6 +46,7 @@
                         </div>
                         <div class="form-group">
                             <select class="form-control" @bind="@SelectedUserRole">
+                                <option value="">Select...</option>
                                 @foreach (var option in UserRoles)
                                 {
                                     <option value="@option">@option</option>
@@ -85,8 +87,8 @@
     [Parameter]
     public EventCallback ClosePopup { get; set; }
 
-    [Parameter]
-    public string SelectedUserRole { get; set; }
+
+    private string SelectedUserRole { get; set; }
 
     [Parameter]
     public EventCallback<string> AddRoleToUser { get; set; }
@@ -95,7 +97,6 @@
     {
         await AddRoleToUser.InvokeAsync(SelectedUserRole);
     }
-
 
     [Parameter]
     public EventCallback<string> RemoveRoleFromUser { get; set; }

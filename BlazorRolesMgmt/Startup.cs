@@ -1,5 +1,6 @@
 using BlazorRolesMgmt.Areas.Identity;
 using BlazorRolesMgmt.Data;
+using BlazorRolesMgmt.Services;
 using BlazorTable;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Components;
@@ -46,6 +47,8 @@ namespace BlazorRolesMgmt
             services.AddScoped<AuthenticationStateProvider, RevalidatingIdentityAuthenticationStateProvider<IdentityUser>>();
             services.AddDatabaseDeveloperPageExceptionFilter();
             services.AddBlazorTable();
+
+            services.AddTransient<IManageUsersService, ManageUsersService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

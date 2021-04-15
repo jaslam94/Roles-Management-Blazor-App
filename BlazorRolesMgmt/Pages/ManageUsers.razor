@@ -2,14 +2,10 @@
 @page "/manageusers"
 @attribute [Authorize(Roles = "Admin")]
 
-@using Microsoft.AspNetCore.Authorization;
-@using Microsoft.AspNetCore.Identity;
 @using BlazorRolesMgmt.Data;
-@using BlazorRolesMgmt.Helpers;
+@using BlazorRolesMgmt.Services;
 
-@inject UserManager<ApplicationUser> _UserManager
-@inject RoleManager<IdentityRole> _RoleManager
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IManageUsersService _usersService
 
 <h3>Manage Users</h3>
 
@@ -111,7 +107,7 @@
 
     protected override void OnInitialized()
     {
-        _allRoles = _RoleManager.Roles.Where(m => m.Name != "Admin").Select(m => m.Name).ToList();
+        _allRoles = _usersService.GetAllRoles();
         GetUsers();
     }
 
@@ -126,7 +122,7 @@
         // Set Id to blank so we know it is a new record
         objUser.Id = "";
         //Reset the allroles list
-        _allRoles = _RoleManager.Roles.Where(m => m.Name != "Admin").Select(m => m.Name).ToList();
+        _allRoles = _usersService.GetAllRoles();
         // Open the Popup
         ShowPopup = true;
     }
@@ -138,14 +134,14 @@
             if (objUser.Id != "")
             {
                 // Get the user
-                var user = await _UserManager.FindByIdAsync(objUser.Id);
+                var user = await _usersService.GetUser(objUser.Id);
 
                 user.Email = objUser.Email;
                 user.FirstName = objUser.FirstName;
                 user.LastName = objUser.LastName;
 
                 // Update the user
-                await _UserManager.UpdateAsync(user);
+                await _usersService.UpdateUser(user);
             }
             else
             {
@@ -157,23 +153,18 @@
                     FirstName = objUser.FirstName,
                     LastName = objUser.LastName
                 };
-                // Create a random password
-                NewUserPassword = PasswordHelper.CreateRandomPassword();
 
-                var CreateResult = await _UserManager.CreateAsync(NewUser, NewUserPassword);
+                var result = await _usersService.AddUser(NewUser);
 
-                if (!CreateResult.Succeeded)
+                if (string.IsNullOrWhiteSpace(result))
                 {
-                    if (CreateResult.Errors.FirstOrDefault() != null)
-                    {
-                        strError = CreateResult.Errors.FirstOrDefault().Description;
-                    }
-                    else
-                    {
-                        strError = "An unexpected error has occurred while creating the new user.";
-                    }
+                    strError = "An unexpected error has occurred while creating the new user.";
                     // Keep the popup opened
                     return;
+                }
+                else
+                {
+                    NewUserPassword = result;
                 }
             }
             // Close the Popup
@@ -198,10 +189,10 @@
         // Set the selected user as the current user
         objUser = _ApplicationUser;
         // Get the user
-        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        var user = await _usersService.GetUser(objUser.Id);
         if (user != null)
         {
-            var userRoles = await _UserManager.GetRolesAsync(user);
+            var userRoles = await _usersService.GetUserRoles(user.Id);
             CurrentUserRoles = string.Join(", ", userRoles.ToArray());
         }
         // Open the Popup
@@ -211,11 +202,11 @@
     async Task DeleteUser()
     {
         // Get the user
-        var user = await _UserManager.FindByIdAsync(objUser.Id);
+        var user = await _usersService.GetUser(objUser.Id);
         if (user != null)
         {
             // Delete the user
-            await _UserManager.DeleteAsync(user);
+            await _usersService.DeleteUser(user);
         }
         // Close the Popup
         ShowPopup = false;
@@ -237,7 +228,68 @@
         // Clear any error messages
         strError = "";
         // Collection to hold users
-        _allUsers = _UserManager.Users.Where(m => m.Email != "admin@rolesmgmt.com").ToList();
+        _allUsers = _usersService.GetAllUsers();
+    }
+
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    //////////////////////////////////////////////Roles Management Code/////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+    async Task AddRemoveUserRoles(ApplicationUser _ApplicationUser)
+    {
+        // Set the selected user as the current user
+        objUser = _ApplicationUser;
+        // Get the user
+        var user = await _usersService.GetUser(objUser.Id);
+        if (user != null)
+        {
+            var userRoles = await _usersService.GetUserRoles(user.Id);
+            CurrentUserRoles = string.Join(", ", userRoles.ToArray());
+
+            //Only those roles which are not assigned to this user
+            _allRoles = _usersService.GetAllRoles();
+
+            //Only those roles which are assigned to this user
+            _userRoles = await _usersService.GetUserRoles(user.Id);
+        }
+        // Show the Delete Role Popup
+        ShowUserRolesPopup = true;
+    }
+
+    async Task RemoveRoleFromUser(string SelectedUserRole)
+    {
+        // Get the user
+        var user = await _usersService.GetUser(objUser.Id);
+        if (user != null)
+        {
+            if (SelectedUserRole != "" && SelectedUserRole != null)
+            {
+                // Delete the user role
+                await _usersService.RemoveRoleFromUser(user.Id, SelectedUserRole);
+            }
+        }
+        // Close the Popup
+        ShowUserRolesPopup = false;
+        // Refresh Users
+        GetUsers();
+    }
+
+    async Task AddRoleToUser(string SelectedUserRole)
+    {
+        // Get the user
+        var user = await _usersService.GetUser(objUser.Id);
+        if (user != null)
+        {
+            if (SelectedUserRole != "" && SelectedUserRole != null)
+            {
+                // Delete the user role
+                await _usersService.AddRoleToUser(user.Id, SelectedUserRole);
+            }
+        }
+        // Close the Popup
+        ShowUserRolesPopup = false;
+        // Refresh Users
+        GetUsers();
     }
 
     ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -254,86 +306,20 @@
         // Set the selected user as the current user
         objUser = _ApplicationUser;
 
-        // Create a random password
-        NewUserPassword = PasswordHelper.CreateRandomPassword();
+        var result = await _usersService.GenerateNewPassword(_ApplicationUser);
 
-        var resetToken = await _UserManager.GeneratePasswordResetTokenAsync(_ApplicationUser);
-        var passworduser = await _UserManager.ResetPasswordAsync(_ApplicationUser, resetToken, NewUserPassword);
-        if (!passworduser.Succeeded)
+        if (string.IsNullOrWhiteSpace(result))
         {
-            if (passworduser.Errors.FirstOrDefault() != null)
-            {
-                strError = passworduser.Errors.FirstOrDefault().Description;
-            }
-            else
-            {
-                strError = "An unexpected error has occurred while setting the new password.";
-            }
+            strError = "An unexpected error has occurred while creating the new user.";
             // Keep the popup opened
             return;
+        }
+        else
+        {
+            NewUserPassword = result;
         }
 
         ShowPassword();
     }
 
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    //////////////////////////////////////////////Roles Management Code/////////////////////////////////////////////
-    ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-    async Task AddRemoveUserRoles(ApplicationUser _ApplicationUser)
-    {
-        // Set the selected user as the current user
-        objUser = _ApplicationUser;
-        // Get the user
-        var user = await _UserManager.FindByIdAsync(objUser.Id);
-        if (user != null)
-        {
-            var userRoles = await _UserManager.GetRolesAsync(user);
-            CurrentUserRoles = string.Join(", ", userRoles.ToArray());
-
-            //Only those roles which are not assigned to this user
-            _allRoles = _RoleManager.Roles.Where(m => !userRoles.Contains(m.Name)).Select(m => m.Name).ToList();
-
-            //Only those roles which are assigned to this user
-            _userRoles = _RoleManager.Roles.Where(m => userRoles.Contains(m.Name)).Select(m => m.Name).ToList();
-        }
-        // Show the Delete Role Popup
-        ShowUserRolesPopup = true;
-    }
-
-    async Task RemoveRoleFromUser(string SelectedUserRole)
-    {
-        // Get the user
-        var user = await _UserManager.FindByIdAsync(objUser.Id);
-        if (user != null)
-        {
-            if (SelectedUserRole != "" && SelectedUserRole != null)
-            {
-                // Delete the user role
-                await _UserManager.RemoveFromRoleAsync(user, SelectedUserRole);
-            }
-        }
-        // Close the Popup
-        ShowUserRolesPopup = false;
-        // Refresh Users
-        GetUsers();
-    }
-
-    async Task AddRoleToUser(string SelectedUserRole)
-    {
-        // Get the user
-        var user = await _UserManager.FindByIdAsync(objUser.Id);
-        if (user != null)
-        {
-            if (SelectedUserRole != "" && SelectedUserRole != null)
-            {
-                // Delete the user role
-                await _UserManager.AddToRoleAsync(user, SelectedUserRole);
-            }
-        }
-        // Close the Popup
-        ShowUserRolesPopup = false;
-        // Refresh Users
-        GetUsers();
-    }
 }

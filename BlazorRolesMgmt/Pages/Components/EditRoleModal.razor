@@ -1,0 +1,49 @@
+﻿
+@using Microsoft.AspNetCore.Identity;
+
+<div class="modal" tabindex="-1" style="display:block" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Add/Edit Role</h3>
+                <!-- Button to close the popup -->
+                <button type="button" class="close" @onclick="ClosePopup"><span aria-hidden="true">X</span></button>
+            </div>
+            <!-- Edit form for the current role -->
+            <div class="modal-body pl-5">
+                <div class="row">
+                    <div class="col-md-10">
+                        <div class="form-group">
+                            <input class="form-control" type="text" placeholder="Name" @bind="objRole.Name" />
+                        </div>
+                        <button class="btn btn-primary" @onclick="SaveRole">Save</button>
+                        @if (objRole.Id != "")
+                        {
+                            <button class="btn btn-danger float-right" @onclick="DeleteRole">Delete</button>
+                        }
+                        <div class="form-group row">
+                            <span style="color:red">@strError</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter]
+    public IdentityRole objRole { get; set; }
+
+    [Parameter]
+    public string strError { get; set; }
+
+    [Parameter]
+    public EventCallback ClosePopup { get; set; }
+
+    [Parameter]
+    public EventCallback SaveRole { get; set; }
+
+    [Parameter]
+    public EventCallback DeleteRole { get; set; }
+}

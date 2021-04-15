@@ -2,12 +2,10 @@
 @page "/manageroles"
 @attribute [Authorize(Roles = "Admin")]
 
-@using Microsoft.AspNetCore.Authorization;
 @using Microsoft.AspNetCore.Identity;
-@using BlazorRolesMgmt.Data;
-@inject UserManager<ApplicationUser> _UserManager
-@inject RoleManager<IdentityRole> _RoleManager
-@inject AuthenticationStateProvider AuthenticationStateProvider
+@using BlazorRolesMgmt.Services;
+
+@inject IManageRolesService _rolesService
 
 <h3>Manage Roles</h3>
 
@@ -29,7 +27,7 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var role in ColRoles)
+                            @foreach (var role in AllRoles)
                             {
                                 <tr>
                                     <td>@role.Name</td>
@@ -88,9 +86,8 @@
 </AuthorizeView>
 
 @code {
-    string AdminRole = "Admin";
     IdentityRole objRole = new IdentityRole();
-    List<IdentityRole> ColRoles = new List<IdentityRole>();
+    List<IdentityRole> AllRoles = new List<IdentityRole>();
     string strError = "";
     bool ShowPopup = false;
 
@@ -109,10 +106,10 @@
     {
         try
         {
-            var role = await _RoleManager.FindByIdAsync(objRole.Id);
+            var role = await _rolesService.GetRole(objRole.Id);
             if (role == null)
             {
-                await _RoleManager.CreateAsync(new IdentityRole(objRole.Name));
+                await _rolesService.AddRole(objRole.Name);
             }
             else
             {
@@ -120,7 +117,7 @@
                 role.Name = objRole.Name;
                 role.NormalizedName = objRole.Name;
                 role.ConcurrencyStamp = objRole.ConcurrencyStamp;
-                await _RoleManager.UpdateAsync(role);
+                await _rolesService.UpdateRole(role);
             }
             ShowPopup = false;
             GetRoles();
@@ -140,10 +137,10 @@
     async Task DeleteRole()
     {
         ShowPopup = false;
-        var role = await _RoleManager.FindByIdAsync(objRole.Id);
+        var role = await _rolesService.GetRole(objRole.Id);
         if (role != null)
         {
-            await _RoleManager.DeleteAsync(role);
+            await _rolesService.DeleteRole(role.Id);
         }
         GetRoles();
     }
@@ -156,6 +153,6 @@
     public void GetRoles()
     {
         strError = "";
-        ColRoles = _RoleManager.Roles.ToList();
+        AllRoles = _rolesService.GetAllRoles();
     }
 }

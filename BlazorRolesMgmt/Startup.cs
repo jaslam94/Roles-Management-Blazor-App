@@ -49,6 +49,7 @@ namespace BlazorRolesMgmt
             services.AddBlazorTable();
 
             services.AddTransient<IManageUsersService, ManageUsersService>();
+            services.AddTransient<IManageRolesService, ManageRolesService>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.

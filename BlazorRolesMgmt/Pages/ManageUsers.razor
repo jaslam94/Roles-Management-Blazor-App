@@ -245,11 +245,11 @@
             var userRoles = await _usersService.GetUserRoles(user.Id);
             CurrentUserRoles = string.Join(", ", userRoles.ToArray());
 
-            //Only those roles which are not assigned to this user
-            _allRoles = _usersService.GetAllRoles();
-
             //Only those roles which are assigned to this user
             _userRoles = await _usersService.GetUserRoles(user.Id);
+
+            //Only those roles which are not assigned to this user
+            _allRoles = _usersService.GetAllRoles().Where(m => !_userRoles.Contains(m)).ToList();
         }
         // Show the Delete Role Popup
         ShowUserRolesPopup = true;

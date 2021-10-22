@@ -1,4 +1,4 @@
-# BlazorRolesMgmt
+# User/Roles Management - Blazor App
 This repository contains code for roles and users management in Blazor. Users can be created, edited, deleted and assigned roles etc. Similarly, roles can also be created, edited and deleted.
 
 For now, it has a lot of room for improvement so I am actively seeking contributions in it.
